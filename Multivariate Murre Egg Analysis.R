@@ -24,6 +24,16 @@ egg2 <- egg %>% na.omit() %>% mutate(EggID= paste(Female, Year, EggNumber)) %>% 
 #Make a data set including only eggs where we know what eggnumber they were
 egg3 <- egg2 %>% filter(EggNumber !="unknown") %>% mutate(Year2=factor(Year))
 
+#Make datasets (with and without unknown egg number eggs) where only the
+#important variables are retained, and all other variables are mean centered and
+#scaled so SD=1
+scaledegg2 <- cbind(egg2[1:3],scale(egg2[,c(4:5,9:14)])) %>% mutate(Year2 = factor(Year))
+scaledegg3 <- cbind(egg3[1:3],scale(egg3[,c(4:5,9:14)])) %>% mutate(Year2 = factor(Year))
+
+
+#clean up workspace
+rm(egg, QCegg, EggstoKeep, Keep)
+
 #Check assumptions
 
 plot <- list()
@@ -42,8 +52,8 @@ do.call(gridExtra::grid.arrange, c(plot, nrow = 4))
 #MANOVA to assess whether eggs differ by female
 #Drop skew, kurtosis and SD of roundness because not repeatable.
 #Scale everything so homogeneity of variance assumptions are met. 
-scaledegg <- cbind(egg2[1:3],scale(egg2[,c(4:5,9:14)]))
-MANOVA <- manova( as.matrix(scaledegg[,4:11])~Female, data=scaledegg)
+scaledegg2 <- cbind(egg2[1:3],scale(egg2[,c(4:5,9:14)]))
+MANOVA <- manova( as.matrix(scaledegg2[,4:11])~Female, data=scaledegg2)
 summary(MANOVA, test="Pillai") 
 # Pillai test is most robust, so we will use that. R automatically transforms
 # the Pillai trace into an F stat to get P values since disctbution of Pillai is
@@ -107,9 +117,7 @@ plot_whole <- ggord::ggord(lda1, scaledegg$Female,
 
 ######PCA USING COLOR AND SHAPE VARIABLES
 #Drop skew, kurtosis and SD of roundness because not repeatable. 
-PCA <- prcomp( egg3[ , c(4:5,9:14)], 
-               center=T, 
-               scale=T, 
+PCA <- prcomp( scaledegg2[,4:11], 
                retx=T)
 
 plot(PCA, type="lines")
@@ -117,52 +125,37 @@ ncomp<-2
 rawLoadings     <- PCA$rotation[,1:ncomp] %*% diag(PCA$sdev, ncomp, ncomp)
 rotatedLoadings <- varimax(rawLoadings)$loadings
 invLoadings     <- t(pracma::pinv(rotatedLoadings))
-rownames(invLoadings) <- colnames(egg3[ , c(4:5,9:14)])
+rownames(invLoadings) <- colnames(scaledegg2[,4:11])
 
-loadingsAll[[i]] <- invLoadings
-PCAsummaries[[i]] <- rotatedLoadings
-scores <- scale(egg3[ , c(4:5,9:14)]) %*% invLoadings
+scores <- scale(scaledegg2[,4:11]) %*% invLoadings
 
 ####Calculate PCs for Top of Egg
-egg3$PC1 <-  scores[,1]
-egg3$PC2 <-  scores[,2]
+scaledegg2$PC1 <-  scores[,1]
+scaledegg2$PC2 <-  scores[,2]
 
 #This PCA really isn't all that good. ONly PC1 explains a lot of variance, so
 #using 2 PCs we only get to 56% explained. Need 5 PCs to get to 91% variance explained. 
 
 
+#For PC analyses, we should only look at females with more than one egg.
 
-#Does PC1 differ between first and replacement eggs? 
-mod <- lmer(PC1~EggNumber + (1|Year2) + (1|Female), data=egg3, REML=F)
-plot(mod)
-#Appear not to need random effect of year-it explains NOTHING
-#Female explains something at least but the SE is too large to be worthwhile probably. 
-summary(mod)
 
-mod2 <- lm(PC1~EggNumber , data=egg3)
-anova(mod2)
-summary(mod)
-#No difference in PC1 based on egg number (basically maculations aren't
-#different since loadings for PC1 are mainly maculations)
+#Does PC1 differ between females? 
+mod_PC1 <- lm(PC1~Female, data=scaledegg2, na.action = "na.fail")
+plot(mod_PC1) #some points have high leverage (I think it's those who have only one data point for that female)
+anova(mod_PC1)
+dredge(mod_PC1)
+#Female does make a difference to PC1
 
-ggplot(egg3, aes(x=factor(Year), y=PC1, fill=EggNumber))+
-  geom_boxplot()
 
-#Does PC2 differ between first and replacement eggs? 
-mod <- lmer(PC2~EggNumber + (1|Year2) + (1|Female), data=egg3, REML=F)
-plot(mod)
-#Appear not to need random effect of year-it explains very little
-#Female explains something at least but the SE is again too large to be worthwhile probably. 
-summary(mod)
-anova(mod)
 
-mod2 <- lm(PC2~EggNumber , data=egg3)
-anova(mod2)
-summary(mod)
-#No significant difference in PC2 based on egg number (basically color isn't
-#different since loadings for PC2 are mainly color) There is a tendency for
-#Replacement egg to have higher PC2, but it's slight and there's so much
-#variation....Also perhaps heteroskedasticity
+#Does PC2 differ between females? 
+mod_PC2 <- lm(PC2~Female, data=scaledegg2, na.action = "na.fail")
+plot(mod_PC2) #some points have high leverage (I think it's those who have only one data point for that female)
+anova(mod_PC2)
+dredge(mod_PC2)
+#Female does make a difference to PC1
+
 
 ggplot(egg3, aes(x=factor(Year), y=PC2, fill=EggNumber))+
   geom_boxplot()
