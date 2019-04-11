@@ -9,7 +9,7 @@ library(tidyverse)
 
 #Read in all the processed egg data. 
 #Right now we have some missing values so remove those
-egg <- read.csv("file:///C:/Users/11arc/Documents/Montogomerie Work/Eggs/Murre egg summarized color and pattern data.csv", as.is=T)
+egg <- read.csv("~/Montogomerie Work/Eggs/Murre egg summarized color and pattern data.csv", as.is=T)
 
 
 

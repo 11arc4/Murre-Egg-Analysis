@@ -1,12 +1,71 @@
-#Combine shape files for all eggs
+#Comparre the color and maculation of two photos of the same egg from different sides. 
 
 
 library(tidyverse)
-library(plotwidgets)
 
+
+
+#Which maculation variables are repeatable across multiple angles of photographs?
+
+duplicates_spot <- read.csv("~/Montogomerie Work/Eggs/Duplicate summarized murre egg pattern data.csv")
+original <- read.csv("file:///C:/Users/11arc/OneDrive/Documents/Montogomerie Work/Eggs/Murre egg summarized color and pattern data.csv")
+
+
+
+spots <- left_join(duplicates_spot, original, by=c("Year", "EggNumber", "Female"))
+
+
+sumspots <- data.frame(Variable=rep(NA, 10), 
+                       m=rep(NA, 10), 
+                       sd =rep(NA, 10), 
+                       p= rep(NA, 10), 
+                       R2 =rep(NA, 10))
+
+for(i in 1:9){
+  ggplot(data=spots, aes_string(x=names(spots)[i+3] , y=names(spots)[i+12])) +
+    geom_point()
+  ggsave(paste("~/Montogomerie Work/Eggs/Plots_Murre/Repeatability based on egg rotation/", i,  names(spots)[i+3], ".jpeg", sep=""), 
+         width=4, height=3, units = "in")
+ 
+   mod <- lm(paste(names(spots)[i+12],   names(spots)[i+3], sep="~" ), data=spots)
+  sumspots$Variable[i] <- names(spots)[i+3]
+  sumspots$m[i] <- summary(mod)$coefficients[2,1]
+  sumspots$sd[i] <- summary(mod)$coefficients[2,2]
+  sumspots$p[i] <- summary(mod)$coefficients[2,4]
+    sumspots$R2[i] <- summary(mod)[[8]]
+  
+  
+}
+
+write.csv(sumspots,"~/Montogomerie Work/Eggs/Repeatable variables across sides.csv", row.names=F, na="" )
+
+
+###########################
+duplicated_color <- read.csv("~/Montogomerie Work/Eggs/Duplicate summarized murre egg color data.csv")
+
+ggplot(data=duplicated_color, aes(x=Hue , y=Hue.1)) +
+  geom_point()
+ggsave("~/Montogomerie Work/Eggs/Plots_Murre/Repeatability based on egg rotation/Hue.jpeg", 
+       width=4, height=3, units = "in")
+
+
+mod <- lm(Hue.1 ~ Hue.1, data=spots)
+sumspots$Variable[10] <- "Hue"
+sumspots$m[10] <- summary(mod)$coefficients[2,1]
+sumspots$sd[10] <- summary(mod)$coefficients[2,2]
+sumspots$p[10] <- summary(mod)$coefficients[2,4]
+sumspots$R2[10] <- summary(mod)[[8]]
+
+
+
+
+######################
+#Make the duplicate_spot dataset
+
+#Combine shape files for all eggs
 
 #Set directory
-dir <- "~/Montogomerie Work/Eggs/Raw Data_Murre/Murre Egg Spot Size Data"
+dir <- "~/Montogomerie Work/Eggs/Raw Data_Murre/Maculation Repeatability Data"
 
 #Combine all files from said directory into one master color datasheet. 
 filenames<- list.files(dir)
@@ -29,8 +88,8 @@ mShape <- data.frame(Area=rep(NA,r),
                      PercArea=rep(NA,r),
                      Female=rep(NA,r),
                      Year=rep(NA,r),
-                     EggNumber=rep(NA,r), 
-                     Third=rep(NA,r))
+                     EggNumber=rep(NA,r)
+                  )
 
 
 n  <- 1
@@ -62,89 +121,51 @@ for (i in 1:length(filenames)){
     shape$TotalArea <- sum(shape$Area)+shape$TotalBackground[1] #adding the area of all the black splotches and the background
   } else {
     if(any("BackgroundArea"==names(shape))){
-    shape$TotalArea <- sum(shape$Area)+shape$BackgroundArea[1] #adding the area of all the black splotches and the background
+      shape$TotalArea <- sum(shape$Area)+shape$BackgroundArea[1] #adding the area of all the black splotches and the background
     } else {
       message(file, "has wrong background area name")
     }
   }
- 
-    shape$PercArea <- shape$Area/shape$TotalArea*100
- 
+  
+  shape$PercArea <- shape$Area/shape$TotalArea*100
+  
   
   #Pull important identifying info out of the file name
   female <- strsplit(file, "_")[[1]][1]
   year <- strsplit(file, "_")[[1]][2]
   eggNumber <- strsplit(file, "_")[[1]][3]
-  third <-  substring(strsplit(file, "_")[[1]][4],1,  nchar(strsplit(file, "_")[[1]][4])-4)
+  #third <-  substring(strsplit(file, "_")[[1]][4],1,  nchar(strsplit(file, "_")[[1]][4])-4)
   
   shape$Female <- female
   shape$Year <- year
   shape$EggNumber <- eggNumber
-  shape$Third <- third
+  #shape$Third <- third
   
   
   if(ncol(shape)!=ncol(mShape)){
     message("check initial file for ", file, ". There is something wrong.")
     #if you get this message, there's something wrong with your initial file. 
-    } else {
-        mShape[n:(n+nrow(shape)-1),]<- shape
-        n<- n+nrow(shape)
-        
+  } else {
+    mShape[n:(n+nrow(shape)-1),]<- shape
+    n<- n+nrow(shape)
+    
   }
 }
 
 #Truncate file to hold only the proper stuff
 mShape1 <- mShape[1:n-1,-11]
 
-write.csv(mShape1, "file:///C:/Users/11arc/OneDrive/Documents/Montogomerie Work/Eggs/Raw Data_Murre/Raw murre egg maculations.csv", na="", row.names = F)
+write.csv(mShape1, "~/Montogomerie Work/Eggs/Duplicate photos raw murre egg maculations.csv", na="", row.names = F)
 
 
 
 #Tidy up
 rm(mShape, shape, filenames, file, eggNumber, female, i, n, r, third, year, shape0, shape1.1)
 
-
-
-#############################
-#Take the large file of egg patterns, and extract informative information at the egg third level and whole egg level
-mShape_Thirds <- mShape1 %>% 
-  filter(Third!=0)%>%
-  group_by(Female, EggNumber, Year, Third) %>% 
-  summarise(NumSpots=length(Area), 
-            meanRound= mean(Round),
-            SDround= sd(Round),
-            skewRound= moments::skewness(Round),
-            kurtosisRound=moments::kurtosis(Round),
-            ScaledPerim=sum(Perim)/sqrt(TotalArea[1]),
-            TotalPercSpot=sum(Area)/TotalArea[1],
-            PercAreaofLargest=max(PercArea),
-            RoundofLargest=Round[which.max(PercArea)[1]]
-  ) %>% 
-  gather(variable, value, -c(Female, EggNumber, Year, Third)) %>%
-  unite(temp, variable, Third) %>%
-  spread(temp, value)
-
-#make thirds whid instead of long.   
- 
-##Recalculate Perc. Area based on the area of the total Egg.  
-# mShape_whole <- mShape1 %>% 
-#   filter(Third!=0)%>%
-#   group_by(Female, EggNumber, Year) %>% 
-#   summarise(NumSpots_whole=length(Area), 
-#             meanRound_whole= mean(Round),
-#             SDround_whole= sd(Round),
-#             skewRound_whole= moments::skewness(Round),
-#             kurtosisRound_whole=moments::kurtosis(Round),
-#             ScaledPerim_whole=sum(Perim)/(first(TotalArea[which(Third==1)])+first(TotalArea[which(Third==2)])+ first(TotalArea[which(Third==3)]) ),
-#             TotalPercSpot_whole=sum(Area)/(first(TotalArea[which(Third==1)])+first(TotalArea[which(Third==2)])+ first(TotalArea[which(Third==3)]) ),
-#             PercAreaofLargest_whole=100*Area[which.max(PercArea)]/(first(TotalArea[which(Third==1)])+first(TotalArea[which(Third==2)])+ first(TotalArea[which(Third==3)]) ),
-#             RoundofLargest_whole=Round[which.max(PercArea)])
-            
 #Calculate for whole egg
-mShape_02 <- mShape1 %>%
-  filter(Third ==0)%>%
-  group_by(Female, EggNumber, Year) %>%
-  summarise(NumSpots_whole=n(),
+mShape <- mShape1 %>% 
+  group_by(Female, EggNumber, Year) %>% 
+  summarise(NumSpots_whole=n(), 
             meanRound_whole= mean(Round),
             SDround_whole= sd(Round),
             skewRound_whole= moments::skewness(Round),
@@ -153,13 +174,11 @@ mShape_02 <- mShape1 %>%
             TotalPercSpot_whole=sum(Area)/ first(TotalArea),
             PercAreaofLargest_whole=100*Area[which.max(PercArea)]/first(TotalArea),
             RoundofLargest_whole=Round[which.max(PercArea)]
-  )
+)
 
 
-#HERE WE REMOVE ALL spots that are <0.5% of the egg
-mShape_0 <- mShape1 %>% 
-  filter(Third ==0)%>%
-  filter(PercArea>0.005)%>%
+mShape <- mShape1 %>% 
+ # filter(PercArea>0.005)%>%
   group_by(Female, EggNumber, Year) %>% 
   summarise(NumSpots_whole=n(), 
             meanRound_whole= mean(Round),
@@ -173,25 +192,27 @@ mShape_0 <- mShape1 %>%
   )
 
 
-color1 <- read.csv( "file:///C:/Users/11arc/OneDrive/Documents/Montogomerie Work/Eggs/Raw Data_Murre/Murre egg colors.csv")[,c(1:3, 9:11)]
-color1$Female <- as.character(color1$Female)
-color1$Year <- as.character(color1$Year)
-color1$EggNumber <- as.character(color1$EggNumber)
+write.csv(mShape,"~/Montogomerie Work/Eggs/Duplicate summarized murre egg pattern data.csv", row.names=F, na="" )
 
 
-EggData <- full_join(color1, mShape_0)
 
-#Need to add in the HSL values for the two egg photos that I found that aren't in the other list. 
 
-MICA <- read.csv("file:///C:/Users/11arc/OneDrive/Documents/Montogomerie Work/Eggs/Raw Data_Murre/MICA RGB  Results for additional eggs.csv")
+###############################################
+MICA <- read.csv("file:///C:/Users/11arc/OneDrive/Pictures/RAWmurreeggs/Image Analysis Results None.csv", as.is = T)
+
+MICA$Rep <- substring(MICA$Label, 1,2)
+MICA$Label2 <- ifelse(MICA$Rep=="2_", substring(MICA$Label, 3, nchar(MICA$Label)), MICA$Label)
+
+
 MICA2 <- MICA %>% 
-  separate(col=Label, into=c("Female", "EggNumber", "Year", "Patch"), sep="_") %>%
-  select(-Patch) %>%
-  group_by(Female, EggNumber, Year) %>%
+  separate(col=Label2, into=c("Female", "EggNumber", "Year", "Patch"), sep="_") %>%
+  select(-Patch, -Label) %>%
+  group_by(Female, EggNumber, Year, Rep) %>%
   summarise_all(mean) %>%
   mutate(R= v.R.NormalisedMean/65535* 256, 
          G=v.G.NormalisedMean/65535* 256, 
          B=v.B.NormalisedMean/65535* 256) 
+
 
 MICA2$EggNumber[MICA2$EggNumber=="first"] <- "First"
 MICA2$EggNumber[MICA2$EggNumber=="replacement"] <- "Replacement"
@@ -206,8 +227,15 @@ MICA2$Saturation <- HSL[2,]
 MICA2$Lightness <- HSL[3,]
 
 
-EggData[EggData$Female=="LowerLWB8A",4:6] <- MICA2[1, 23:25]
-EggData[EggData$Female=="LSH4",4:6] <- MICA2[2, 23:25]
+MICA3 <- MICA2 %>% 
+  select(c(Female, EggNumber, Year, Rep, Hue, Saturation, Lightness)) %>% 
+  mutate(Rep=ifelse(Rep=="2_", 2, 1)) %>% 
+ arrange(Rep)
 
-write.csv(EggData,"file:///C:/Users/11arc/OneDrive/Documents/Montogomerie Work/Eggs/Murre egg summarized color and pattern data.csv", row.names=F, na="" )
+duplicated_color <- data.frame(MICA3[1:8,],
+      MICA3[9:16,5:7])
+
+write.csv(duplicated_color,"~/Montogomerie Work/Eggs/Duplicate summarized murre egg color data.csv", row.names=F, na="" )
+
+
 
