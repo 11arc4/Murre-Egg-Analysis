@@ -6,7 +6,7 @@ library(plotwidgets)
 
 
 #Set directory
-dir <- "~/Montogomerie Work/Eggs/Egg Color Data"
+dir <- "~/Montogomerie Work/Eggs/Raw Data_Murre/Egg Color Data"
 
 #Combine all files from said directory into one master color datasheet. 
 filenames<- list.files(dir)
@@ -27,7 +27,7 @@ mColor <- data.frame(X=rep(NA,r),
 
 n  <- 1
 for (i in 1:length(filenames)){
-  file <- filenames[i]
+  file <- as.character(filenames[i])
   
   #Load in file
   color <- read.csv(paste(dir, file, sep="/"), as.is=T, na.strings = "")
@@ -40,21 +40,24 @@ for (i in 1:length(filenames)){
   color$Female <- female
   color$Year <- year
   color$EggNumber <- eggNumber
-  
+
   if(nrow(color)==50){
     mColor[n:(n+49),]<- color
+    
     n<- n+50
   } else {
     message("Check ", file, ": too many rows")
   }
-  
 }
 
 
 #Transform from a WIDE data sheet to a long data sheet
 #Only need to report the mode for each RGB
 
-mColor2 <- mColor %>% group_by(Label, Female, Year, EggNumber) %>% summarise(Mean=mean(Mode)) %>% spread(Label, Mean)
+mColor2 <- mColor %>% 
+  group_by(Label, Female, Year, EggNumber) %>% 
+  summarise(Mean=mean(Mode)) %>% 
+  spread(Label, Mean)
 RGB <- as.matrix(rbind(mColor2$Red, mColor2$Green, mColor2$Blue))
 HSL <- rgb2hsl(rgb=RGB)
 
@@ -63,4 +66,4 @@ mColor2$Saturation <- HSL[2,]
 mColor2$Lightness <- HSL[3,]
 
 #create a new masterfile that includes everything. 
-write.csv(mColor2 %>% arrange(Female), "file:///C:/Users/11arc/Documents/Montogomerie Work/Eggs/Murre egg colors.csv", na="", row.names = F)
+write.csv(mColor2 %>% arrange(Female), "C:/Users/11arc/OneDrive/Documents/Montogomerie Work/Eggs/Murre egg colors.csv", na="", row.names = F)

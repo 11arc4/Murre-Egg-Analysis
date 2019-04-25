@@ -173,7 +173,7 @@ mShape_0 <- mShape1 %>%
   )
 
 
-color1 <- read.csv( "file:///C:/Users/11arc/OneDrive/Documents/Montogomerie Work/Eggs/Raw Data_Murre/Murre egg colors.csv")[,c(1:3, 9:11)]
+color1 <- read.csv( "C:/Users/11arc/OneDrive/Documents/Montogomerie Work/Eggs/Murre egg colors.csv")[,c(1:3, 9:11)]
 color1$Female <- as.character(color1$Female)
 color1$Year <- as.character(color1$Year)
 color1$EggNumber <- as.character(color1$EggNumber)
