@@ -100,13 +100,11 @@ for(RFem in unique(egg_boot$Female)){
     bootdif[j] <- boot_col[i,1]-replacement
   }
   #How many of those thousand egg pairs are farther apart than the female's pair?
-  boot_col$LessDif[i]<- length(which(bootdif > abs(boot_col$FDif[i])))
+  boot_col$LessDif[i]<- length(which(abs(bootdif) > abs(boot_col$FDif[i])))
 }
 
 mean(boot_col$LessDif)/2000
-#CONCLUSIONS: Females first captured breeding attempt is has a more similar hue
-#to her next breeding attempt than 44% of random replacement eggs-- This jives
-#pretty well with the idea that 50% of eggs are blueish and 50% brownish. 
+#CONCLUSIONS: 78% of random eggs would be farther apart than female and her own egg based on hue. 
 
 
 #COMPARING FEMALES OWN EGGS AGAINST 2 RANDOMLY CHOSEN EGGS FROM THE POPULATION
@@ -244,17 +242,17 @@ for(RFem in unique(egg_boot$Female)){
     
   }
   #How many of those thousand egg pairs are Closer together than the female's pair?
-  boot_spot$LessDif_RC1[i]<- length(which(bootdif_RC1 > abs(boot_spot$FDif_RC1[i])))
-  boot_spot$LessDif_RC2[i]<- length(which(bootdif_RC2 > abs(boot_spot$FDif_RC2[i])))
+  boot_spot$LessDif_RC1[i]<- length(which(abs(bootdif_RC1) > abs(boot_spot$FDif_RC1[i])))
+  boot_spot$LessDif_RC2[i]<- length(which(abs(bootdif_RC2) > abs(boot_spot$FDif_RC2[i])))
   
 }
 boot_spot <- boot_spot %>% filter(!is.na(FEgg1_RC1))
 
-mean(boot_spot$LessDif_RC1)/2000
+mean(boot_spot$LessDif_RC1)/nrow(boot_spot)
 
-mean(boot_spot$LessDif_RC2)/2000
+mean(boot_spot$LessDif_RC2)/nrow(boot_spot)
 
-#CONCLUSIONS: In only about 20% of the cases is the female's own egg spots more
+#CONCLUSIONS: In only about 30% of the cases is the female's own egg spots more
 #similar than a random pairing (either RC1 or RC2).
 
 

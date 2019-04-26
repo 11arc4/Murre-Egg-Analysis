@@ -124,9 +124,9 @@ for(i in 1:nrow(boot_spot)){
   bootdif_RC1 <- boot_spot[i,2]-pop_RC1
   bootdif_RC2 <- boot_spot[i,6]-pop_RC2
   
-  #How many of those thousand egg pairs are Closer together than the female's pair?
-  boot_spot$LessDif_RC1[i]<- length(which(bootdif_RC1 > abs(boot_spot$LDif_RC1[i])))
-  boot_spot$LessDif_RC2[i]<- length(which(bootdif_RC2 > abs(boot_spot$LDif_RC2[i])))
+  #How many of those thousand egg pairs are Closer together than two eggs from the same ledge pair?
+  boot_spot$LessDif_RC1[i]<- length(which(abs(bootdif_RC1) > abs(boot_spot$LDif_RC1[i])))
+  boot_spot$LessDif_RC2[i]<- length(which(abs(bootdif_RC2) > abs(boot_spot$LDif_RC2[i])))
   
   rm(bootdif_RC1, bootdif_RC2, pop_RC1, pop_RC2, sam)
 }
@@ -134,4 +134,4 @@ for(i in 1:nrow(boot_spot)){
 mean(boot_spot$LessDif_RC1)/2000
 
 mean(boot_spot$LessDif_RC2)/2000
- #~20% of eggs on the same ledge are more similar 
+ #~50% of eggs on the same ledge are more similar than a random egg across the population. 
