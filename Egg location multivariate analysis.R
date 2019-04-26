@@ -135,3 +135,40 @@ mean(boot_spot$LessDif_RC1)/2000
 
 mean(boot_spot$LessDif_RC2)/2000
  #~50% of eggs on the same ledge are more similar than a random egg across the population. 
+
+
+
+
+
+
+
+eggs2_hue <- eggs2 %>% 
+  filter(!is.na(Hue) )
+
+
+boot_hue <- as.data.frame(matrix(nrow=3000, ncol=5, NA))
+names(boot_hue) <- c("Site", "LEgg1_Hue", "LEgg2_Hue", "LDif_Hue", "LessDif_Hue")
+boot_hue$Site <- rep(c("LLWB", "SPIT", "ULWB"))
+
+#COMPARING two eggs from the same ledge, AGAINST A RANDOMLY CHOSEN EGG FROM THE POPULATION (regardless of ledge)
+
+for(i in 1:nrow(boot_hue)){
+  #Pick 2 eggs from the same ledge
+  sam <- sample(x=eggs2_hue$EggID[eggs2_hue$Site==boot_hue$Site[i]], size=2, replace=F)
+  
+  
+  boot_hue[i,2:3] <- eggs2_hue$Hue[which(eggs2_hue$EggID %in% sam)]
+  boot_hue$LDif_Hue[i] <- boot_hue[i,2]-boot_hue[i,3]
+  
+    #Randomly choose a another egg (with replacement) from the population
+  pop_hue <- sample(eggs2_hue$Hue, 2000, replace=T)
+  bootdif_Hue <- boot_hue[i,2]-pop_hue
+
+  #How many of those thousand egg pairs are Closer together than two eggs from the same ledge pair?
+  boot_hue$LessDif_Hue[i]<- length(which(abs(bootdif_Hue) > abs(boot_hue$LDif_Hue[i])))
+
+}
+
+mean(boot_hue$LessDif_Hue)/2000
+
+#~50% of eggs on the same ledge are more similar than a random egg across the population based on hue 
